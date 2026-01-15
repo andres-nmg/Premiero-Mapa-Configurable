@@ -2,7 +2,7 @@
 /*
 Plugin Name: BSMap - Mapa de Tiendas Beanstalk Foods
 Description: Muestra un mapa interactivo con tiendas, distribuidores y venta online.
-Version: 1.5
+Version: 2.0
 Author: Premiero
 Author URI: https://www.premiero.es
 */
