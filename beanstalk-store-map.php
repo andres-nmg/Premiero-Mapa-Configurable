@@ -39,12 +39,92 @@ function bsmap_register_cpt() {
 add_action('init', 'bsmap_register_cpt');
 
 /* ============================================================
+   1.1) CPT: Promociones
+   ============================================================ */
+function bsmap_register_promo_cpt() {
+    $labels = array(
+        'name'               => 'Promociones',
+        'singular_name'      => 'Promoción',
+        'menu_name'          => 'Promociones',
+        'add_new'            => 'Añadir Promoción',
+        'add_new_item'       => 'Añadir nueva promoción',
+        'edit_item'          => 'Editar promoción',
+        'new_item'           => 'Nueva promoción',
+        'view_item'          => 'Ver promoción',
+        'search_items'       => 'Buscar promoción',
+        'not_found'          => 'No se encontraron promociones',
+    );
+
+    $args = array(
+        'labels'        => $labels,
+        'public'        => false,
+        'show_ui'       => true,
+        'menu_icon'     => 'dashicons-megaphone',
+        'supports'      => array('title', 'thumbnail'),
+    );
+
+    register_post_type('bsmap_promo', $args);
+}
+add_action('init', 'bsmap_register_promo_cpt');
+
+/* ============================================================
    2) Metabox: campos tienda
    ============================================================ */
 function bsmap_add_meta_box() {
     add_meta_box('bsmap_info', 'Datos de la Tienda', 'bsmap_render_meta_box', 'bsmap_tienda', 'normal', 'default');
 }
 add_action('add_meta_boxes', 'bsmap_add_meta_box');
+
+function bsmap_add_promo_meta_box() {
+    add_meta_box('bsmap_promo_info', 'Datos de la Promoción', 'bsmap_render_promo_meta_box', 'bsmap_promo', 'normal', 'default');
+}
+add_action('add_meta_boxes', 'bsmap_add_promo_meta_box');
+
+function bsmap_render_promo_meta_box($post) {
+    $active    = get_post_meta($post->ID, 'bsmap_promo_active', true);
+    $image_id  = get_post_meta($post->ID, 'bsmap_promo_image_id', true);
+    $start     = get_post_meta($post->ID, 'bsmap_promo_start', true);
+    $end       = get_post_meta($post->ID, 'bsmap_promo_end', true);
+    $thumb_id  = get_post_thumbnail_id($post->ID);
+    $image_url = $image_id ? wp_get_attachment_image_url($image_id, 'medium') : '';
+    if (!$image_url && $thumb_id) {
+        $image_url = wp_get_attachment_image_url($thumb_id, 'medium');
+    }
+    ?>
+    <table class="form-table">
+        <tr>
+            <th><label>Activa</label></th>
+            <td>
+                <label>
+                    <input type="checkbox" name="bsmap_promo_active" value="1" <?php checked($active, '1'); ?>>
+                    Disponible
+                </label>
+            </td>
+        </tr>
+        <tr>
+            <th><label>Imagen de promoción</label></th>
+            <td>
+                <div class="bsmap-promo-image-wrap">
+                    <?php if ($image_url): ?>
+                        <img src="<?php echo esc_url($image_url); ?>" alt="" style="max-width:160px;height:auto;display:block;margin-bottom:8px;">
+                    <?php endif; ?>
+                    <input type="hidden" name="bsmap_promo_image_id" value="<?php echo esc_attr($image_id); ?>">
+                    <button type="button" class="button bsmap-promo-image-upload">Subir/Seleccionar imagen</button>
+                    <button type="button" class="button bsmap-promo-image-remove" <?php disabled(!$image_id); ?>>Quitar imagen</button>
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <th><label>Fecha inicio</label></th>
+            <td><input type="date" name="bsmap_promo_start" value="<?php echo esc_attr($start); ?>"></td>
+        </tr>
+        <tr>
+            <th><label>Fecha fin</label></th>
+            <td><input type="date" name="bsmap_promo_end" value="<?php echo esc_attr($end); ?>"></td>
+        </tr>
+    </table>
+    <?php
+}
 
 function bsmap_render_meta_box($post) {
     $direccion = get_post_meta($post->ID, 'bsmap_direccion', true);
@@ -55,7 +135,7 @@ function bsmap_render_meta_box($post) {
     $insta     = get_post_meta($post->ID, 'bsmap_instagram', true);
     $zona      = get_post_meta($post->ID, 'bsmap_zona', true); // NUEVO
     $veganuary = get_post_meta($post->ID, 'bsmap_veganuary_2x1', true);
-    $promo_txt = get_post_meta($post->ID, 'bsmap_promo_text', true);
+    $promo_id  = get_post_meta($post->ID, 'bsmap_promo_id', true);
     ?>
     <table class="form-table">
         <tr>
@@ -103,8 +183,27 @@ function bsmap_render_meta_box($post) {
             </td>
         </tr>
         <tr>
-            <th><label>Texto de la promoción</label></th>
-            <td><input type="text" name="bsmap_promo_text" value="<?php echo esc_attr($promo_txt); ?>" class="regular-text" placeholder="Ej.: Veganuary 2x1"></td>
+            <th><label>Promoción activa</label></th>
+            <td>
+                <?php
+                $active_promos = bsmap_get_active_promos();
+                if (empty($active_promos)) {
+                    echo '<select class="regular-text" disabled><option>No hay promociones activas</option></select>';
+                } else {
+                    echo '<select name="bsmap_promo_id" class="regular-text">';
+                    echo '<option value="">Seleccionar...</option>';
+                    foreach ($active_promos as $promo) {
+                        printf(
+                            '<option value="%s" %s>%s</option>',
+                            esc_attr($promo['id']),
+                            selected((string)$promo_id, (string)$promo['id'], false),
+                            esc_html($promo['name'])
+                        );
+                    }
+                    echo '</select>';
+                }
+                ?>
+            </td>
         </tr>
     </table>
     <?php
@@ -112,11 +211,12 @@ function bsmap_render_meta_box($post) {
 
 function bsmap_save_meta_box($post_id) {
     if ( defined('DOING_AUTOSAVE') && DOING_AUTOSAVE ) return;
-    if ( get_post_type($post_id) !== 'bsmap_tienda' ) return;
+    $post_type = get_post_type($post_id);
+    if ( $post_type !== 'bsmap_tienda' ) return;
 
     $fields = [
         'bsmap_direccion','bsmap_lat','bsmap_lng',
-        'bsmap_categoria','bsmap_web','bsmap_instagram','bsmap_zona','bsmap_promo_text'
+        'bsmap_categoria','bsmap_web','bsmap_instagram','bsmap_zona'
     ];
     foreach ($fields as $field) {
         if (isset($_POST[$field])) {
@@ -125,8 +225,74 @@ function bsmap_save_meta_box($post_id) {
     }
     $veganuary = isset($_POST['bsmap_veganuary_2x1']) ? '1' : '0';
     update_post_meta($post_id, 'bsmap_veganuary_2x1', $veganuary);
+    if (isset($_POST['bsmap_promo_id'])) {
+        $promo_id = absint($_POST['bsmap_promo_id']);
+        update_post_meta($post_id, 'bsmap_promo_id', $promo_id);
+    }
 }
 add_action('save_post', 'bsmap_save_meta_box');
+
+function bsmap_save_promo_meta_box($post_id) {
+    if ( defined('DOING_AUTOSAVE') && DOING_AUTOSAVE ) return;
+    if ( get_post_type($post_id) !== 'bsmap_promo' ) return;
+
+    $active = isset($_POST['bsmap_promo_active']) ? '1' : '0';
+    update_post_meta($post_id, 'bsmap_promo_active', $active);
+
+    if (isset($_POST['bsmap_promo_image_id'])) {
+        update_post_meta($post_id, 'bsmap_promo_image_id', absint($_POST['bsmap_promo_image_id']));
+    }
+    if (isset($_POST['bsmap_promo_start'])) {
+        update_post_meta($post_id, 'bsmap_promo_start', sanitize_text_field($_POST['bsmap_promo_start']));
+    }
+    if (isset($_POST['bsmap_promo_end'])) {
+        update_post_meta($post_id, 'bsmap_promo_end', sanitize_text_field($_POST['bsmap_promo_end']));
+    }
+}
+add_action('save_post', 'bsmap_save_promo_meta_box');
+
+function bsmap_is_promo_active($promo_id) {
+    $active = get_post_meta($promo_id, 'bsmap_promo_active', true) === '1';
+    if (!$active) return false;
+    $start = get_post_meta($promo_id, 'bsmap_promo_start', true);
+    $end   = get_post_meta($promo_id, 'bsmap_promo_end', true);
+    $today = current_time('Y-m-d');
+    if ($start && $today < $start) return false;
+    if ($end && $today > $end) return false;
+    return true;
+}
+
+function bsmap_get_active_promos() {
+    $posts = get_posts([
+        'post_type'   => 'bsmap_promo',
+        'numberposts' => -1,
+        'post_status' => 'publish',
+    ]);
+    $promos = [];
+    foreach ($posts as $p) {
+        if (!bsmap_is_promo_active($p->ID)) continue;
+        $image_id = get_post_meta($p->ID, 'bsmap_promo_image_id', true);
+        if (!$image_id) {
+            $image_id = get_post_thumbnail_id($p->ID);
+        }
+        $promos[] = [
+            'id'    => $p->ID,
+            'name'  => $p->post_title,
+            'image' => $image_id ? wp_get_attachment_image_url($image_id, 'medium') : '',
+        ];
+    }
+    return $promos;
+}
+
+function bsmap_promo_admin_assets($hook) {
+    if ($hook !== 'post.php' && $hook !== 'post-new.php') return;
+    $screen = get_current_screen();
+    if (!$screen || $screen->post_type !== 'bsmap_promo') return;
+    wp_enqueue_media();
+    $base = plugin_dir_url(__FILE__) . 'assets/';
+    wp_enqueue_script('bsmap-promo-admin', $base . 'bsmap-promo-admin.js', ['jquery'], '1.0', true);
+}
+add_action('admin_enqueue_scripts', 'bsmap_promo_admin_assets');
 
 /* ============================================================
    2.1) Columnas en listado de tiendas (admin)
@@ -149,12 +315,13 @@ add_filter('manage_bsmap_tienda_posts_columns', 'bsmap_add_admin_columns');
 function bsmap_render_admin_columns($column, $post_id) {
     if ($column !== 'bsmap_promo') return;
     $has_promo = get_post_meta($post_id, 'bsmap_veganuary_2x1', true) === '1';
-    $promo_txt = trim((string)get_post_meta($post_id, 'bsmap_promo_text', true));
-    $display = ($has_promo && $promo_txt !== '') ? $promo_txt : '—';
+    $promo_id = absint(get_post_meta($post_id, 'bsmap_promo_id', true));
+    $promo_title = $promo_id ? get_the_title($promo_id) : '';
+    $display = ($has_promo && $promo_title !== '') ? $promo_title : '—';
     printf(
-        '<span class="bsmap-promo-data" data-promo-enabled="%s" data-promo-text="%s">%s</span>',
+        '<span class="bsmap-promo-data" data-promo-enabled="%s" data-promo-id="%s">%s</span>',
         esc_attr($has_promo ? '1' : '0'),
-        esc_attr($promo_txt),
+        esc_attr($promo_id),
         esc_html($display)
     );
 }
@@ -187,8 +354,8 @@ function bsmap_admin_promo_query($query) {
 
     $orderby = $query->get('orderby');
     if ($orderby === 'bsmap_promo') {
-        $query->set('meta_key', 'bsmap_promo_text');
-        $query->set('orderby', 'meta_value');
+        $query->set('meta_key', 'bsmap_promo_id');
+        $query->set('orderby', 'meta_value_num');
     }
 
     if (empty($_GET['bsmap_promo_filter'])) return;
@@ -201,9 +368,9 @@ function bsmap_admin_promo_query($query) {
                 'compare' => '='
             ],
             [
-                'key'     => 'bsmap_promo_text',
-                'value'   => '',
-                'compare' => '!='
+                'key'     => 'bsmap_promo_id',
+                'value'   => 0,
+                'compare' => '>'
             ]
         ]);
     } elseif ($filter === 'without') {
@@ -215,12 +382,12 @@ function bsmap_admin_promo_query($query) {
                 'compare' => '!='
             ],
             [
-                'key'     => 'bsmap_promo_text',
-                'value'   => '',
-                'compare' => '='
+                'key'     => 'bsmap_promo_id',
+                'value'   => 0,
+                'compare' => '<='
             ],
             [
-                'key'     => 'bsmap_promo_text',
+                'key'     => 'bsmap_promo_id',
                 'compare' => 'NOT EXISTS'
             ],
         ]);
@@ -230,6 +397,7 @@ add_action('pre_get_posts', 'bsmap_admin_promo_query');
 
 function bsmap_quick_edit_fields($column_name, $post_type) {
     if ($column_name !== 'bsmap_promo' || $post_type !== 'bsmap_tienda') return;
+    $active_promos = bsmap_get_active_promos();
     ?>
     <fieldset class="inline-edit-col-right">
         <div class="inline-edit-col">
@@ -238,16 +406,49 @@ function bsmap_quick_edit_fields($column_name, $post_type) {
                 <span class="checkbox-title">Promoción</span>
             </label>
             <label class="alignleft" style="margin-left:12px;">
-                <span class="title">Texto de la promoción</span>
-                <span class="input-text-wrap">
-                    <input type="text" name="bsmap_promo_text" value="">
-                </span>
+                <span class="title">Promoción activa</span>
+                <select name="bsmap_promo_id">
+                    <option value="">Seleccionar...</option>
+                    <?php foreach ($active_promos as $promo): ?>
+                        <option value="<?php echo esc_attr($promo['id']); ?>"><?php echo esc_html($promo['name']); ?></option>
+                    <?php endforeach; ?>
+                </select>
             </label>
         </div>
     </fieldset>
     <?php
 }
 add_action('quick_edit_custom_box', 'bsmap_quick_edit_fields', 10, 2);
+
+function bsmap_bulk_edit_fields($column_name, $post_type) {
+    if ($column_name !== 'bsmap_promo' || $post_type !== 'bsmap_tienda') return;
+    $active_promos = bsmap_get_active_promos();
+    ?>
+    <fieldset class="inline-edit-col-right">
+        <div class="inline-edit-col">
+            <label class="alignleft">
+                <span class="title">Estado promoción</span>
+                <select name="bsmap_bulk_promo_state">
+                    <option value="">No cambiar</option>
+                    <option value="1">Activa</option>
+                    <option value="0">Inactiva</option>
+                </select>
+            </label>
+            <label class="alignleft" style="margin-left:12px;">
+                <span class="title">Promoción activa</span>
+                <select name="bsmap_bulk_promo_id">
+                    <option value="">No cambiar</option>
+                    <option value="0">Sin promoción</option>
+                    <?php foreach ($active_promos as $promo): ?>
+                        <option value="<?php echo esc_attr($promo['id']); ?>"><?php echo esc_html($promo['name']); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
+        </div>
+    </fieldset>
+    <?php
+}
+add_action('bulk_edit_custom_box', 'bsmap_bulk_edit_fields', 10, 2);
 
 function bsmap_quick_edit_js() {
     global $typenow;
@@ -266,15 +467,34 @@ function bsmap_quick_edit_js() {
             const $data = $row.find(".bsmap-promo-data");
             if (!$data.length) return;
             const enabled = String($data.data("promo-enabled")) === "1";
-            const text = $data.data("promo-text") || "";
+            const promoId = String($data.data("promo-id") || "");
             $edit.find('input[name="bsmap_veganuary_2x1"]').prop("checked", enabled);
-            $edit.find('input[name="bsmap_promo_text"]').val(text);
+            $edit.find('select[name="bsmap_promo_id"]').val(promoId);
         };
     });
     </script>
     <?php
 }
 add_action('admin_footer-edit.php', 'bsmap_quick_edit_js');
+
+function bsmap_handle_bulk_edit($post_id) {
+    if ( defined('DOING_AUTOSAVE') && DOING_AUTOSAVE ) return;
+    if ( get_post_type($post_id) !== 'bsmap_tienda' ) return;
+    if ( !isset($_REQUEST['bulk_edit']) ) return;
+
+    if ( isset($_REQUEST['bsmap_bulk_promo_state']) && $_REQUEST['bsmap_bulk_promo_state'] !== '' ) {
+        $state = sanitize_text_field($_REQUEST['bsmap_bulk_promo_state']);
+        if ($state === '1' || $state === '0') {
+            update_post_meta($post_id, 'bsmap_veganuary_2x1', $state);
+        }
+    }
+
+    if ( isset($_REQUEST['bsmap_bulk_promo_id']) && $_REQUEST['bsmap_bulk_promo_id'] !== '' ) {
+        $promo_id = absint($_REQUEST['bsmap_bulk_promo_id']);
+        update_post_meta($post_id, 'bsmap_promo_id', $promo_id);
+    }
+}
+add_action('save_post', 'bsmap_handle_bulk_edit', 20);
 
 /* ============================================================
    3) Shortcode [bsmap] — layout con sidebar (forzado para Elementor)
@@ -291,7 +511,6 @@ function bsmap_shortcode() {
             </form>
 
             <div class="bsmap-promos" hidden>
-                <h3>Promociones</h3>
                 <div class="bsmap-promos-list"></div>
             </div>
 
@@ -342,8 +561,8 @@ function bsmap_enqueue_assets() {
         [],
         null
     );
-    wp_enqueue_style( 'bsmap-css', $base . 'bsmap.css', [], '1.4' );
-    wp_enqueue_script( 'bsmap-js', $base . 'bsmap.js', ['leaflet-js'], '1.4', true );
+    wp_enqueue_style( 'bsmap-css', $base . 'bsmap.css', [], '1.5' );
+    wp_enqueue_script( 'bsmap-js', $base . 'bsmap.js', ['leaflet-js'], '1.5', true );
 
     // Datos: tiendas
     $tiendas = [];
@@ -362,11 +581,12 @@ function bsmap_enqueue_assets() {
         'web'        => get_post_meta($p->ID, 'bsmap_web', true),
         'instagram'  => get_post_meta($p->ID, 'bsmap_instagram', true),
         'zona'       => get_post_meta($p->ID, 'bsmap_zona', true), // <-- añade esto
-        'promo_text' => get_post_meta($p->ID, 'bsmap_promo_text', true),
+        'promo_id'   => absint(get_post_meta($p->ID, 'bsmap_promo_id', true)),
         'veganuary_2x1' => (get_post_meta($p->ID, 'bsmap_veganuary_2x1', true) === '1'),
     ];
 }
-    wp_localize_script( 'bsmap-js', 'bsmap_data', ['tiendas' => $tiendas] );
+    $promos = bsmap_get_active_promos();
+    wp_localize_script( 'bsmap-js', 'bsmap_data', ['tiendas' => $tiendas, 'promos' => $promos] );
 }
 add_action('wp_enqueue_scripts', 'bsmap_enqueue_assets');
 
@@ -384,6 +604,46 @@ function bsmap_register_import_page() {
     );
 }
 add_action('admin_menu', 'bsmap_register_import_page');
+
+/* ============================================================
+   6) Columnas en listado de promociones (admin)
+   ============================================================ */
+function bsmap_add_promo_admin_columns($columns) {
+    $new = [];
+    foreach ($columns as $key => $label) {
+        $new[$key] = $label;
+        if ($key === 'title') {
+            $new['bsmap_promo_active'] = 'Activa';
+            $new['bsmap_promo_start'] = 'Inicio';
+            $new['bsmap_promo_end'] = 'Fin';
+        }
+    }
+    if (!isset($new['bsmap_promo_active'])) {
+        $new['bsmap_promo_active'] = 'Activa';
+        $new['bsmap_promo_start'] = 'Inicio';
+        $new['bsmap_promo_end'] = 'Fin';
+    }
+    return $new;
+}
+add_filter('manage_bsmap_promo_posts_columns', 'bsmap_add_promo_admin_columns');
+
+function bsmap_render_promo_admin_columns($column, $post_id) {
+    if ($column === 'bsmap_promo_active') {
+        echo bsmap_is_promo_active($post_id) ? 'Si' : 'No';
+        return;
+    }
+    if ($column === 'bsmap_promo_start') {
+        $start = get_post_meta($post_id, 'bsmap_promo_start', true);
+        echo $start ? esc_html(date_i18n('d/m/Y', strtotime($start))) : '—';
+        return;
+    }
+    if ($column === 'bsmap_promo_end') {
+        $end = get_post_meta($post_id, 'bsmap_promo_end', true);
+        echo $end ? esc_html(date_i18n('d/m/Y', strtotime($end))) : '—';
+        return;
+    }
+}
+add_action('manage_bsmap_promo_posts_custom_column', 'bsmap_render_promo_admin_columns', 10, 2);
 
 function bsmap_import_csv_page() {
     ?>

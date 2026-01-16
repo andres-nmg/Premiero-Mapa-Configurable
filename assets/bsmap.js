@@ -36,6 +36,10 @@ document.addEventListener("DOMContentLoaded", function () {
   const tiendas = (typeof bsmap_data !== "undefined" && Array.isArray(bsmap_data.tiendas))
     ? bsmap_data.tiendas
     : [];
+  const promos = (typeof bsmap_data !== "undefined" && Array.isArray(bsmap_data.promos))
+    ? bsmap_data.promos
+    : [];
+  const promoById = new Map(promos.map((p) => [String(p.id), p]));
 
   // Icono SVG tipo localizador
   function svgPin(color) {
@@ -55,14 +59,27 @@ document.addEventListener("DOMContentLoaded", function () {
 
   const markerGroup = L.layerGroup().addTo(map);
 
+  function getPromoForStore(t) {
+    const promoId = String(t.promo_id || "");
+    if (!t.veganuary_2x1 || !promoId || !promoById.has(promoId)) return null;
+    return promoById.get(promoId);
+  }
+
+  function promoBadgeHTML(promo) {
+    if (!promo) return "";
+    if (promo.image) {
+      return `<span class="bsmap-badge-veganuary"><img src="${promo.image}" alt="${promo.name || "Promocion"}"></span>`;
+    }
+    return `<span class="bsmap-badge-veganuary">${promo.name}</span>`;
+  }
+
   function popupHTML(t) {
     const meta = categoryMeta[t.categoria] || { label: "Sin categoría", color: "#66594a", textColor: "#ffffff" };
     const zonaBlock = t.zona ? `<p>${t.zona}</p>` : "";
     const webBtn = t.web ? `<a class="btn-web" href="${t.web}" target="_blank" rel="noopener">Web</a>` : "";
     const igBtn  = t.instagram ? `<a class="btn-ig" href="${t.instagram}" target="_blank" rel="noopener">Instagram</a>` : "";
-    const promoText = (t.promo_text || "").trim();
-    const hasPromo = !!t.veganuary_2x1 && promoText !== "";
-    const veganuaryBadge = hasPromo ? `<span class="bsmap-badge-veganuary">${promoText}</span>` : "";
+    const promo = getPromoForStore(t);
+    const veganuaryBadge = promoBadgeHTML(promo);
 
     return `
       <div class="bsmap-popup" style="line-height:1.4">
@@ -100,8 +117,8 @@ document.addEventListener("DOMContentLoaded", function () {
       if (!t.lat || !t.lng) return;
       if (filterCat !== "todos" && t.categoria !== filterCat) return;
       if (promoFilterActive) {
-        const promoText = (t.promo_text || "").trim();
-        if (!t.veganuary_2x1 || promoText === "" || !selectedPromos.has(promoText)) return;
+        const promoId = String(t.promo_id || "");
+        if (!t.veganuary_2x1 || !promoId || !selectedPromos.has(promoId)) return;
       }
 
       if (q) {
@@ -123,28 +140,34 @@ document.addEventListener("DOMContentLoaded", function () {
   renderMarkers(currentCat, currentQuery, selectedPromos);
 
   // Mostrar/ocultar listado de promociones con checkboxes
-  const promoStores = (tiendas || []).filter(t => !!t.veganuary_2x1 && (t.promo_text || "").trim() !== "");
-  const promoTexts = [...new Set(promoStores.map(t => (t.promo_text || "").trim()).filter(Boolean))];
+  const usedPromos = promos.filter((p) => p && String(p.id));
   const promosWrap = document.querySelector(".bsmap-promos");
   const promosList = promosWrap ? promosWrap.querySelector(".bsmap-promos-list") : null;
   if (promosWrap && promosList) {
-    if (promoTexts.length > 0) {
-      promoTexts.forEach((text) => {
+    if (usedPromos.length > 0) {
+      usedPromos.forEach((promo) => {
         const label = document.createElement("label");
         label.className = "bsmap-promo-option";
         const input = document.createElement("input");
         input.type = "checkbox";
-        input.value = text;
+        input.value = String(promo.id);
         const span = document.createElement("span");
-        span.textContent = text;
+        if (promo.image) {
+          const img = document.createElement("img");
+          img.src = promo.image;
+          img.alt = promo.name || "Promocion";
+          span.appendChild(img);
+        } else {
+          span.textContent = promo.name;
+        }
         label.appendChild(input);
         label.appendChild(span);
         promosList.appendChild(label);
         input.addEventListener("change", () => {
           if (input.checked) {
-            selectedPromos.add(text);
+            selectedPromos.add(String(promo.id));
           } else {
-            selectedPromos.delete(text);
+            selectedPromos.delete(String(promo.id));
           }
           renderMarkers(currentCat, currentQuery, selectedPromos);
         });
@@ -181,7 +204,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
     searchInput.addEventListener("input", function () {
       currentQuery = this.value || "";
-      renderMarkers(currentCat, currentQuery, onlyVeganuary);
+      renderMarkers(currentCat, currentQuery, selectedPromos);
     });
   }
 
