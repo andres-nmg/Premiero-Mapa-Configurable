@@ -927,8 +927,8 @@ function pcm_map_shortcode() {
     ?>
     <div
         id="<?php echo esc_attr( $instance ); ?>"
-        class="pcm-map"
-        style="<?php echo esc_attr( pcm_color_style( $settings['colors'] ) ); ?>"
+        class="pcm-map pcm-map--wide"
+        style="<?php echo esc_attr( pcm_color_style( $settings['colors'] ) . ';max-width:none!important;margin-left:auto!important;margin-right:auto!important' ); ?>"
         data-map="<?php echo esc_attr( wp_json_encode( $payload ) ); ?>"
     >
         <aside class="pcm-map__sidebar">
