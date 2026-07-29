@@ -25,6 +25,17 @@
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
+/*
+ * Los temas de bloques limitan los hijos del contenido al ancho de lectura.
+ * Se anula solo ese límite, conservando el ancho y los márgenes del contenedor
+ * principal para que el mapa permanezca centrado.
+ */
+body .pcm-map.pcm-map--wide {
+  max-width: none !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
 .pcm-map .screen-reader-text {
   position: absolute;
   width: 1px;
