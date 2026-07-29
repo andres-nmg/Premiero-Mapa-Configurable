@@ -1,0 +1,208 @@
+.pcm-map,
+.pcm-map * {
+  box-sizing: border-box;
+}
+
+.pcm-map {
+  --pcm-sidebar-bg: #234e52;
+  --pcm-sidebar-text: #fff;
+  --pcm-body-text: #374151;
+  --pcm-accent: #2b7a78;
+  --pcm-accent-text: #fff;
+  --pcm-marker: #e76f51;
+  --pcm-popup-title: #234e52;
+  --pcm-button-bg: #2b7a78;
+  --pcm-button-text: #fff;
+  --pcm-map-bg: #e5e7eb;
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  min-height: 620px;
+  overflow: hidden;
+  background: #fff;
+  color: var(--pcm-body-text);
+  box-shadow: 0 4px 20px rgb(15 23 42 / 10%);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.pcm-map .screen-reader-text {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.pcm-map__sidebar {
+  flex: 0 0 320px;
+  width: 320px;
+  padding: 24px 20px;
+  background: var(--pcm-sidebar-bg);
+  color: var(--pcm-sidebar-text);
+}
+
+.pcm-map__title {
+  margin: 0 0 18px;
+  color: var(--pcm-sidebar-text);
+  font-size: clamp(1.5rem, 2.5vw, 2rem);
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.pcm-map__search {
+  display: flex;
+  width: 100%;
+  margin: 0 0 12px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--pcm-accent) 60%, #fff);
+  border-radius: 4px;
+  background: #fff;
+}
+
+.pcm-map__search input {
+  min-width: 0;
+  flex: 1;
+  height: 42px;
+  margin: 0;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 0;
+  outline: 0;
+  background: #fff;
+  color: var(--pcm-body-text);
+  font: inherit;
+}
+
+.pcm-map__search button {
+  min-height: 42px;
+  margin: 0;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 0;
+  background: var(--pcm-accent);
+  color: var(--pcm-accent-text);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+}
+
+.pcm-map__search button:hover,
+.pcm-map__search button:focus-visible {
+  filter: brightness(1.1);
+}
+
+.pcm-map__count {
+  margin: 8px 0 0;
+  color: var(--pcm-sidebar-text);
+  font-size: 0.9rem;
+}
+
+.pcm-map__canvas {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  min-height: 620px;
+  flex: 1 1 auto;
+  background: var(--pcm-map-bg);
+}
+
+.pcm-map .leaflet-popup-content-wrapper {
+  border-radius: 6px;
+  box-shadow: 0 6px 24px rgb(15 23 42 / 22%);
+}
+
+.pcm-map .leaflet-popup-content {
+  min-width: 220px;
+  margin: 18px;
+}
+
+.pcm-popup {
+  color: var(--pcm-body-text);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.45;
+}
+
+.pcm-popup h3 {
+  margin: 0 24px 8px 0;
+  color: var(--pcm-popup-title);
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.pcm-popup p {
+  margin: 4px 0;
+  color: var(--pcm-body-text);
+  font-size: 0.95rem;
+}
+
+.pcm-popup__field strong {
+  color: var(--pcm-body-text);
+  font-weight: 650;
+}
+
+.pcm-popup__field a {
+  color: var(--pcm-accent);
+  text-decoration: underline;
+}
+
+.pcm-popup__web {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 8px 14px;
+  border-radius: 4px;
+  background: var(--pcm-button-bg);
+  color: var(--pcm-button-text) !important;
+  font-weight: 650;
+  text-decoration: none !important;
+}
+
+.pcm-popup__web:hover,
+.pcm-popup__web:focus-visible {
+  filter: brightness(1.1);
+}
+
+.pcm-map .leaflet-popup-close-button {
+  color: var(--pcm-popup-title);
+  font-size: 22px;
+}
+
+@media (max-width: 800px) {
+  .pcm-map {
+    min-height: 580px;
+    flex-direction: column;
+  }
+
+  .pcm-map__sidebar {
+    width: 100%;
+    flex-basis: auto;
+    padding: 16px;
+  }
+
+  .pcm-map__title {
+    margin-bottom: 12px;
+  }
+
+  .pcm-map__canvas {
+    min-height: 430px;
+  }
+}
+
+@media (max-width: 480px) {
+  .pcm-map__search {
+    flex-wrap: wrap;
+  }
+
+  .pcm-map__search input,
+  .pcm-map__search button {
+    width: 100%;
+  }
+
+  .pcm-map__canvas {
+    min-height: 380px;
+  }
+}
